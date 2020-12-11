@@ -1,0 +1,52 @@
+#ifndef SEARCHPAGERANK_H
+#define SEARCHPAGERANK_H
+
+struct urlNode {
+    char *url;
+    struct urlNode* next;
+};
+
+typedef struct urlNode *UrlNode;
+typedef struct urlNode *UrlList;
+
+struct invertedIndexNode {
+    char *word;
+    UrlList urlList;
+    struct invertedIndexNode* next;
+};
+
+typedef struct invertedIndexNode* InvertedIndexNode;
+typedef struct invertedIndexNode* InvertedIndexList;
+
+struct pageNode {
+    char* url;
+    double pr;
+    int terms;
+    struct PageNode* next;
+};
+typedef struct pageNode* PageNode;
+typedef struct pageNode* PageList;
+
+struct pageRankNode {
+    char* url;
+    double pr;
+    struct pageRankNode* next;
+};
+
+typedef struct pageRankNode* PageRankNode;
+typedef struct pageRankNode* PageRankList;
+
+//read ranking list of pages
+PageRankList readPageRankList();
+
+//read inverted index list
+InvertedIndexList readInvertedIndexList();
+
+//search the word
+PageList searchWord(PageList list, InvertedIndexList invertedIndexList, 
+                    PageRankList pageRankList, const char* word);
+
+//sort the list
+PageList sortList(PageList list);
+
+#endif

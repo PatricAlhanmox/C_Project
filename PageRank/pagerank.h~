@@ -1,0 +1,25 @@
+#ifndef PAGERANK_H
+#define PAGERANK_H
+
+#include "Graph.h"
+
+struct pageRankNode {
+    char* url;
+    double pr;
+    int outlinks;
+    struct pageRankNode* next;
+};
+
+typedef struct pageRankNode* PageRankNode;
+typedef struct pageRankNode* PageRankList;
+
+//weighted page rank algorithm.
+PageRankList weightedPageRank(Graph g, double d, double diffPR, int maxIterations);
+
+//sort the list
+PageRankList sortList(PageRankList list);
+
+//print the list
+void printList(PageRankList list);
+
+#endif

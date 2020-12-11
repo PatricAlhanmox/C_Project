@@ -1,0 +1,55 @@
+#ifndef GRAPH_H
+#define GRAPH_H
+
+struct pageNode;
+typedef struct pageNode* Vertex;
+typedef struct pageNode* VertexList;
+
+struct adjNode;
+typedef struct adjNode* AdjacentNode;
+typedef struct adjNode* AdjacentList;
+
+struct graph;
+typedef struct graph* Graph;
+
+struct pageNode {
+    char* url;
+    Vertex next;
+    AdjacentList adjlist;
+};
+
+struct adjNode {
+    Vertex adjv;
+    struct adjNode* next;
+};
+
+struct graph {
+    VertexList vList;
+    int nV;
+};
+
+//create a new graph
+Graph newGraph();
+
+//load a graph from a file
+Graph loadGraph(Graph graph, const char* filename);
+
+//find one url in a graph
+Vertex findUrl (Graph graph, const char* url);
+
+//check whether i is outgoing to j
+int isOutgoingTo(Vertex i, Vertex j);
+
+//get the number of in-links of a vertex
+int inlinks(Graph g, Vertex v);
+
+//get the number of out-links of a vertex
+int outlinks(Vertex v);
+
+//calculate the out-weight
+double weightOut(Graph g, Vertex v, Vertex u);
+
+//calculate the in-weight
+double weightIn(Graph g, Vertex v, Vertex u);
+
+#endif

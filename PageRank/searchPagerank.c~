@@ -1,0 +1,194 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <ctype.h>
+#include "searchPagerank.h"
+
+char* trim(char* str);
+InvertedIndexNode findWord(InvertedIndexList list, const char* word);
+PageNode findPage(PageList list, const char* url);
+double getPR (PageRankList list, const char* url);
+
+PageRankList readPageRankList() {
+    char line[1024];
+    
+    FILE*fp = fopen("pageRankList.txt", "r");
+    char delim[] = ", ";
+    char *part = NULL;
+    PageRankList list = NULL;
+    while(fgets(line, 1024, fp)) {
+        PageRankNode node = (PageRankNode)malloc(sizeof(*node));
+        part = strtok(line, delim);
+        node->url = (char*)malloc(strlen(part) + 1);
+        strcpy(node->url, part);
+        
+        part = strtok(NULL, delim);
+        part = strtok(NULL, delim);
+        node->pr = atof(part);
+        node->next = list;
+        list = node;
+    }
+    fclose(fp);
+    return list;
+}
+
+InvertedIndexList readInvertedIndexList() {
+    InvertedIndexList list = NULL;
+    FILE *fp = fopen("invertedIndex.txt", "r");
+    char word[1000];
+    char *url = NULL;
+    char line[1024];
+    int x;
+    char *urls = NULL;
+    char *delim = " ";
+    while((x = fscanf(fp, "%s", word)) == 1) {
+        InvertedIndexNode indexNode = 
+                                (InvertedIndexNode)malloc(sizeof(*indexNode));
+        indexNode->word = (char*)malloc(strlen(word) + 1);    
+        strcpy(indexNode->word, word);
+        indexNode->urlList = NULL;
+        
+        fgets(line, sizeof(line), fp);
+        urls = trim(line);
+        url = strtok(urls, delim);
+        UrlNode urlNode = (UrlNode)malloc(sizeof(*urlNode));
+        urlNode->url = (char*)malloc(strlen(url) + 1);
+        strcpy(urlNode->url, url);
+        urlNode->next = indexNode->urlList;
+        indexNode->urlList = urlNode;
+        while((url = strtok(NULL, delim)) != NULL) {
+            urlNode = (UrlNode)malloc(sizeof(*urlNode));
+            urlNode->url = (char*)malloc(strlen(url) + 1);
+            strcpy(urlNode->url, url);
+            urlNode->next = indexNode->urlList;
+            indexNode->urlList = urlNode;
+        }
+        indexNode->next = list;
+        list = indexNode;
+    }
+    fclose(fp);
+}
+
+PageList searchWord(PageList list, InvertedIndexList invertedIndexList, 
+                                PageRankList pageRankList, const char* word) {
+    //find the word
+    InvertedIndexNode wordNode = findWord(invertedIndexList, word);
+    if(wordNode) {
+        //find the urlNode
+        UrlNode urlNode = wordNode->urlList;
+        while(urlNode) {
+            PageNode pageNode = findPage(list, urlNode->url);
+            if (pageNode) {
+                //if  found increase the filed
+                pageNode->terms++;
+            } else {
+                //add a new page node
+                pageNode = (PageNode)malloc(sizeof(*pageNode));
+                pageNode->url = (char*)malloc(strlen(urlNode->url) + 1);
+                strcpy(pageNode->url, urlNode->url);
+                pageNode->pr = getPR(pageRankList, urlNode->url);
+                pageNode->terms = 1;
+                pageNode->next = list;
+                list = pageNode;
+            }
+            urlNode = urlNode->next;
+        }
+    }
+    return list;
+}
+
+//sort list by selection sort algorithm.
+PageList sortList(PageList list) {
+    PageNode i = list;
+    while(i) {
+        PageNode j = i->next;
+        PageNode max = i;
+        while(j) {
+            if (j->terms > max->terms || 
+                (j->terms == max->terms && j->pr > max->pr)) {
+                max = j;
+            }
+            j = j->next;
+        }
+        
+        if(max != i) {
+            char* tmp = i->url;
+            i->url = max->url;
+            max->url = tmp;
+            
+            double tmpd = i->pr;
+            i->pr = max->pr;
+            max->pr = tmpd;
+            
+            int tmpi = i->terms;
+            i->terms = max->terms;
+            max->terms = tmpi;
+        }
+        i = i->next;
+    }
+    return list;
+}
+
+//trim the string
+char* trim(char* str) {
+    int len = strlen(str);
+    char* begin = str;
+    char* end = begin + len - 1;
+    
+    //erase the blank characters before and after the string
+    for(; isspace(*begin); begin++);
+    for(; isspace(*end); end--);
+    end++;
+    end = '\0';
+    
+    return begin;
+}
+
+InvertedIndexNode findWord(InvertedIndexList list, const char* word) {
+    InvertedIndexNode node = list;
+    while(node) {
+        if(strcmp(node->word, word) == 0) return node;
+        node = node->next;
+    }
+    return NULL;
+}
+
+PageNode findPage(PageList list, const char* url) {
+    PageNode node = list;
+    while(node) {
+        if(strcmp(node->url, url) == 0) return node;
+        node = node->next;
+    }
+    return NULL;
+}
+
+double getPR (PageRankList list, const char* url) {
+    PageRankNode node = list;
+    while(node) {
+        if(strcmp(node->url, url) == 0) return node->pr;
+        node = node->next;
+    }
+    return 0.0;
+}
+
+int main(int argc, char* argv[]) {
+    int i;
+    PageList list= NULL;
+    PageRankList pageRankList = readPageRankList();
+    InvertedIndexList invertedIndexList = readInvertedIndexList();
+    for (i = 1; i < argc; i++) {
+        list = searchWord(list, invertedIndexList, pageRankList, argv[i]);
+    }
+    list = sortList(list);
+    
+    int numOfPages = 0;
+    PageNode node = list;
+    while (node && numOfPages < 100) {
+        printf("%s\n", node->url);
+        numOfPages++;
+        node = node->next;
+    }
+    return 0;
+}
+

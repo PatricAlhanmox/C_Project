@@ -1,0 +1,156 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
+#include "pagerank.h"
+
+PageRankList buildList(Graph g);
+int url2index(char* urls[], int n, const char* url);
+
+int main(int argc, char *argv[]) {
+    int maxInteration = atoi(argv[3]);
+    double val = atof(argv[1]);
+    double diffPR = atof(argv[2]);
+    
+    Graph g = newGraph();
+    g = loadGraph(g, "collection.txt");
+    
+    PageRankNode list = weightedPageRank(g, val, diffPR, maxInteration);
+    list = sortList(list);
+    printList(list);
+    
+    return 0;
+}
+
+PageRankList weightedPageRank(Graph g, double val, double diffPR, int maxIterations) {
+    //build the list according to the graph
+    PageRankList list = buildList(g);
+    PageRankNode node = list;
+    while(node) {
+        node->pr = 1./g->nV;
+        node = node->next;
+    }
+    
+    double *oldPR = (double*)malloc(g->nV*sizeof(double));
+    char** urls = (char**)malloc(g->nV*sizeof(char*));
+    
+    node = list;
+    int x = 0;
+    //cop the original pr
+    while(node) {
+        oldPR[x] = node->pr;
+        urls[x] = node->url;
+        node = node->next;
+        x++;
+    }
+    
+    int iteration = 0;
+    double diff = diffPR;
+    
+    double c = (1 - val) / g->nV;
+    
+    while(iteration < maxIterations && diff >= diffPR) {
+        PageRankNode i = list;
+        while(i) {
+            PageRankNode j = list;
+            double sum = 0;
+            while(j) {
+                if(j == i) {
+                    j = j->next;
+                    continue;
+                }
+                Vertex u = findUrl(g, i->url);
+                Vertex v = findUrl(g, j->url);
+                if(isOutgoingTo(u, v)) {
+                    x = url2index(urls, g->nV, j->url);
+                    double pr = oldPR[x];
+                    double wIn = weightIn(g, v, u);
+                    double wOut = weightOut(g, v, u);
+                    sum += pr*wIn * wOut;
+                }
+                j = j->next;
+            }
+            i->pr = c + val * sum;
+            
+            i = i->next;
+        }
+        
+        node = list;
+        x = 0;
+        diff = 0;
+        while(node) {
+            diff = diff + fabs(node->pr - oldPR[x]);
+            oldPR[x] = node->pr;
+            node = node->next;
+            x++;
+        }
+        iteration++;
+    }
+    return list;
+}
+
+PageRankList buildList(Graph g) {
+    PageRankList list = NULL;
+    Vertex v = g->vList;
+    while(v) {
+        PageRankNode node = (PageRankNode)malloc(sizeof(*node));
+        node->url = (char*)malloc(strlen(v->url) + 1);
+        strcpy(node->url, v->url);
+        node->pr = 0;
+        node->outlinks = outlinks(v);
+        node->next = list;
+        list = node;
+        
+        v = v->next;
+    }
+    return list;
+}
+
+PageRankList sortList(PageRankList list) {
+    PageRankNode i = list;
+    while(i) {
+        PageRankNode max = i;
+        PageRankNode j = i->next;
+        while(j) {
+            if(j->pr > max->pr) max = j;
+            j = j->next;
+        }
+        if (max != i) {
+            char *tmp = i->url;
+            i->url = max->url;
+            max->url = tmp;
+            
+            double tmpd = i->pr;
+            i->pr = max->pr;
+            max->pr = tmpd;
+            
+            int tmpi = i->outlinks;
+            i->outlinks = max->outlinks;
+            max->outlinks = tmpi;
+        }
+        i = i->next;
+    }
+    return list;
+}
+
+void printList(PageRankList list) {
+    FILE* fp = fopen("pagerankList.txt", "w");
+    PageRankNode node = list;
+    while(node) {
+        fprintf(fp, "%s, %d, %.5f\n", node->url, node->outlinks, node->pr);
+        node = node->next;
+    }
+    fclose(fp);
+}
+
+int url2index(char* urls[], int n, const char* url) {
+    int i = 0;
+    while(i < n) {
+        if(strcmp(urls[i], url) == 0) return i;
+        i++;
+    }
+    return -1;
+} 
+
+

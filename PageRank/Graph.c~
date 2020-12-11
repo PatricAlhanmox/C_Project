@@ -1,0 +1,153 @@
+#include "Graph.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "pagerank.h"
+
+Graph newGraph() {
+    //allocate memory and initilaize
+    Graph graph = (Graph)malloc(sizeof(*graph));
+    graph->vList = NULL;
+    graph->nV = 0;
+    return graph;
+}
+
+Graph loadGraph(Graph graph, const char* filename) {
+    FILE *fp = fopen(filename, "r");
+    char url[50];
+    char urlFilename[50];
+    int i;
+    Vertex v = NULL;
+    //read the file
+    while ((i = fscanf(fp, "%s", url)) == 1) {
+        v = findUrl(graph, url);
+        //if the url was not read before, create a new vertex
+        if(!v) {
+            Vertex newVertex = (Vertex)malloc(sizeof(*newVertex));
+            newVertex->url = (char*)malloc(strlen(url) + 1);
+            strcpy(newVertex->url, url);
+            newVertex->adjlist = NULL;
+            newVertex->next = NULL;
+            graph->vList = newVertex;
+            
+            graph->nV++;
+        }
+    }
+    fclose(fp);
+    
+    //for each url, read the corresponding file
+    Vertex tmp = graph->vList;
+    while(tmp) {
+        strcpy(urlFilename, tmp->url);
+        strcat(urlFilename, ".txt");
+        
+        fp = fopen(urlFilename, "r");
+        fscanf(fp, "%s", url);
+        fscanf(fp, "%s", url);
+        
+        while(1) {
+            fscanf(fp, "%s", url);
+            if(url[0] == ' ') break;
+            v = findUrl(graph, url);
+            if(v && v != tmp) {
+                //find the url in the adjacent list
+                AdjacentNode node = tmp->adjlist;
+                while(node) {
+                    if(node->adjv == v) break;
+                    node = node->next;
+                }
+                //add the url to the adjacent lsit
+                if (!node) {
+                    node = (AdjacentNode)malloc(sizeof(*node));
+                    node->adjv = v;
+                    node->next = tmp->adjlist;
+                    tmp->adjlist = node;
+                }
+            }
+        }
+        tmp = tmp->next;
+        fclose(fp);
+    }
+    return graph;
+}
+
+int isOutgoingTo(Vertex i, Vertex j) {
+    AdjacentNode node = i->adjlist;
+    while(node) {
+        if (node->adjv == j) return 1;
+        node = node->next;
+    }
+    return 0;
+}
+
+int inlinks(Graph g, Vertex v) {
+    int x = 0;
+    Vertex tmp = g->vList;
+    //check each vertex and calculate the value
+    while(tmp) {
+        if(tmp == v) {
+            tmp = tmp->next;
+            continue;
+        }
+        AdjacentNode node = tmp->adjlist;
+        while(node) {
+            if(node->adjv == v) x++;
+            node = node->next;
+        }
+        tmp = tmp->next;
+    }
+    return x;
+}
+
+int outlinks (Vertex v) {
+    //the length of the adjaent list
+    int x = 0;
+    AdjacentNode node = v->adjlist;
+    while(node) {
+        x++;
+        node = node->next;
+    }
+    return x;
+}
+
+double weightOut(Graph g, Vertex v, Vertex u) {
+    if (g) {
+        int ou = outlinks(u);
+        double sumop = 0;
+        AdjacentNode node = v->adjlist;
+        while(node) {
+            int tmp = outlinks(node->adjv);
+            if (tmp == 0) {
+                sumop += 0.5;
+            }
+            else {
+                sumop += tmp;
+            }
+            node = node->next;
+        }
+        if (ou == 0) return 0.5 / sumop;
+        else return ou * 1.0 /sumop;
+    }
+    return 0.0;
+}
+
+double weightIn(Graph g, Vertex v, Vertex u) {
+    int iu = inlinks(g, u);
+    int sumip = 0;
+    
+    AdjacentNode node = v->adjlist;
+    while(node) {
+        sumip += inlinks(g, node->adjv);
+        node = node->next;
+    }
+    return iu* 1.0 / sumip;
+}
+
+Vertex findUrl (Graph graph, const char* url) {
+    Vertex v = graph->vList;
+    while (v) {
+        if (strcmp(v->url, url) == 0) return v;
+        v = v->next;
+    }
+    return NULL;
+}

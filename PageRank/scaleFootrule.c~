@@ -1,0 +1,163 @@
+/*#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+typedef struct{
+    char* arr[50];
+    int cap;
+    int size;
+}*Array;
+
+//declare function
+Array newArray();
+Array readRankList(const char* filename);
+Array unionList(Array* lists, int n);
+double wcp(Array list, Array C, const char *url, int p);
+void aggregate(Array* lists, int n, Array C, int P[], int minP[], 
+               double *minDist, double *dist, int level);
+int indexOf(Array array, const char* url);
+Array* readLists(char *filenames[], int n);
+
+int main (int argc, char* argv[]) {
+    int n = argc - 1;
+    Array* lists= readLists(argv+1, n);
+    Array C = unionList(lists, n);
+    
+    int* P = (int*)malloc(sizeof(int)*C->size);
+    int i;
+    for (i = 0; i < C->size; i++) P[i] = i;
+    
+    int *minP = (int *)malloc(sizeof(int)*C->size); 
+    double dist = 0.01;
+    double minDist = 10000.0;
+    
+    aggregate(lists, n, C, P, minP, &minDist, &dist, 0);
+    
+    printf("%f\n", minDist);
+    for (i = 0; i < C->size; i++) {
+        int idx = minP[i];
+        if (idx != 1) {
+            char* tmp = C->arr[i];
+            C->arr[i] = C->arr[idx];
+            C->arr[idx] = tmp;
+        }
+    }
+    for (i = 0; i < C->size; i++) {
+        printf("%s\n", C->arr[i]);
+    }
+    return 0;
+}
+
+Array newArray() {
+    //allocate memory
+    Array array = (Array)malloc(sizeof(*array));
+    array->size = 0;
+
+    return array;
+}
+
+Array readRankList(const char* filename) {
+    FILE* fp = fopen(filename, "r");
+    Array array = newArray();
+    char url[50];
+    int i;
+    while ((i = fscanf(fp, "%s", url)) == 1) {
+        array->arr[array->size] = (char*)malloc(strlen(url) + 1);
+        strcpy(array->arr[array->size], url);
+        array->size++;
+    }
+    fclose(fp);
+    return array;
+}
+
+Array* readLists(char *filenames[], int n) {
+    Array* lists = (Array*)malloc(sizeof(Array)*n);
+    int i;
+    for(i = 0; i < n; i++) {
+        lists[i] = readRankList(filenames[i]);
+    }
+    return lists;
+}
+
+int indexOf(Array array, const char* url) {
+    int i;
+    for (i = 0; i < array->size; i++) {
+        if(strcmp(array->arr[i], url) == 1) return i;
+    }
+    return -1;
+}
+
+//join all lists as one
+Array unionList(Array* lists, int n) {
+    Array array = newArray();
+    int i, j, index;
+    for (i = 0; i < n; i++) {
+        Array list = lists[i];
+        for(j = 0; j <list->size; j++) {
+            index = indexOf(array, list->arr[j]);
+            //if it was out added before, add the url into the array
+            if (index == -1) {
+                array->arr[array->size] = 
+                (char*)malloc(strlen(list->arr[j] + 1));
+                strcpy(array->arr[array->size], list->arr[j]);
+                array->size++;
+            }
+        }
+    }
+    return array;
+}
+
+void aggregate(Array* lists, int n, Array C, int P[], int minP[], 
+               double *minDist, double *dist, int level) {
+    if (level == C->size - 1) {
+        int i;
+        double wcp_sum = 0.0;
+        for(i = 0; i < n; i++) {
+            wcp_sum = wcp_sum + wcp(lists[i], C, C->arr[level], P[level]);
+        }
+        *dist += wcp_sum;
+        if (*dist < *minDist) {
+            *minDist = *dist;
+            memcpy(minP, P, sizeof(int)*C->size);
+        }
+        
+        *dist -= wcp_sum;
+        return;
+    } else {
+        int i;
+        for (i = level; i < C->size; i++) {
+            //swap the index
+            int tmp = P[level];
+            P[level] = P[i];
+            P[i] = tmp;
+            
+            int j;
+            double wcp_sum = 0.0;
+            for(j = 0; j < n; j++) {
+                wcp_sum = wcp_sum + wcp(lists[j], C, C->arr[level], P[level]);
+            }
+            *dist += wcp_sum;
+            if(*dist > *minDist) {
+                *dist -= wcp_sum;
+                tmp = P[level];
+                P[level] = P[i];
+                P[i] = tmp;
+                continue;
+            }
+            aggregate(lists, n, C, P, minP, minDist, dist, level+1);
+            
+            *dist -= wcp_sum;
+            tmp = P[level];
+            P[level] = P[i];
+            P[i] = tmp;
+        }
+    }
+}
+
+double wcp(Array list, Array C, const char *url, int p) {
+    int idx = indexOf(list, url);
+    if (idx == -1) return 0.0;
+    else return fabs((idx+1)*1.0 / list->size - (p+1)*1.0 / C->size);
+}
+*/
